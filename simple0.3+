@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 1024
+
+void execute_command(char *command);
+
+int main(void)
+{
+    char buffer[BUFFER_SIZE];
+
+    while (1)
+    {
+        printf("$ ");
+        fflush(stdout);
+
+        if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
+            break;
+
+        // Remove the newline character
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (strcmp(buffer, "exit") == 0)
+            break;
+
+        execute_command(buffer);
+    }
+
+    return 0;
+}
+
+void execute_command(char *command)
+{
+    pid_t pid = fork();
+
+    if (pid < 0)
+    {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    else if (pid == 0)
+    {
+        // Child process
+        if (execlp(command, command, NULL) == -1)
+        {
+            perror("execlp");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        // Parent process
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WIFEXITED(status))
+        {
+            int exit_status = WEXITSTATUS(status);
+            printf("Child process exited with status %d\n", exit_status);
+        }
+    }
+}

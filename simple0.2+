@@ -1,0 +1,90 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 1024
+
+void execute_command(char *command);
+int check_command_exists(char *command);
+
+int main(void)
+{
+    char buffer[BUFFER_SIZE];
+
+    while (1)
+    {
+        printf(":) ");
+        fflush(stdout);
+
+        if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
+            break;
+
+        // Remove the newline character
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (strcmp(buffer, "exit") == 0)
+            break;
+
+        execute_command(buffer);
+    }
+
+    return 0;
+}
+
+void execute_command(char *command)
+{
+    if (!check_command_exists(command))
+    {
+        printf("Command not found: %s\n", command);
+        return;
+    }
+
+    pid_t pid = fork();
+
+    if (pid < 0)
+    {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    else if (pid == 0)
+    {
+        // Child process
+        if (execlp(command, command, NULL) == -1)
+        {
+            perror("execlp");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        // Parent process
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WIFEXITED(status))
+        {
+            int exit_status = WEXITSTATUS(status);
+            printf("Child process exited with status %d\n", exit_status);
+        }
+    }
+}
+
+int check_command_exists(char *command)
+{
+    char *path = getenv("PATH");
+    char *path_entry = strtok(path, ":");
+
+    while (path_entry != NULL)
+    {
+        char command_path[BUFFER_SIZE];
+        snprintf(command_path, BUFFER_SIZE, "%s/%s", path_entry, command);
+
+        if (access(command_path, F_OK) == 0)
+            return 1;
+
+        path_entry = strtok(NULL, ":");
+    }
+
+    return 0;
+}
