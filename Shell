@@ -1,0 +1,55 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+#define BUFFER_SIZE 1024
+
+/**
+ * main - Entry point of the program
+ *
+ * Return: 0 on success
+ */
+int main(void)
+{
+    char buffer[BUFFER_SIZE];
+
+    while (1)
+    {
+        printf("#cisfun$ ");
+        fflush(stdout);
+
+        if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
+        {
+            printf("\n");
+            break;
+        }
+
+        // Remove the newline character
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (strcmp(buffer, "exit") == 0)
+        {
+            break;
+        }
+
+        if (fork() == 0)
+        {
+            // Child process
+            if (execlp(buffer, buffer, (char *)NULL) == -1)
+            {
+                printf("./shell: No such file or directory\n");
+                exit(1);
+            }
+        }
+        else
+        {
+            // Parent process
+            wait(NULL);
+        }
+    }
+
+    return 0;
+}
+
